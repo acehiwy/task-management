@@ -1,34 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { CreateUserPayload } from './dto/create-user.dto';
-import { UpdateUserPayload } from './dto/update-user.dto';
+import { Body, Controller, Post } from '@nestjs/common';
+import { CreateUserApiPayload } from './dto/create-user.dto';
+import { UserRepo } from './users-repo.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UserRepo) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserPayload) {
+  create(@Body() createUserDto: CreateUserApiPayload) {
     return this.usersService.create(createUserDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserPayload) {
-    return this.usersService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
   }
 }
