@@ -1,26 +1,34 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  Headers,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
 } from '@nestjs/common';
-import { TasksService } from './tasks.service';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { CreateTaskApiPayload } from './dto/create-task.dto';
 import { UpdateTaskApiPayload } from './dto/update-task.dto';
+import { TasksService } from './tasks.service';
+import { extractBearerToken } from 'src/common/helpers';
 
-@Controller('tasks')
+const resourceName = 'tasks';
+
+@Controller(resourceName)
+@ApiBearerAuth()
+@ApiTags(resourceName)
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  create(
-    @Body() requestBody: CreateTaskApiPayload,
-    @Headers('User-Id') requestMakerUserId: string,
-  ) {
+  create(@Body() requestBody: CreateTaskApiPayload, @Req() req: Request) {
+    const requestMakerUserId = extractBearerToken(
+      req.get('authorization') as string,
+    ) as string;
+
     return this.tasksService.create({
       title: requestBody.title,
       description: requestBody.description,
