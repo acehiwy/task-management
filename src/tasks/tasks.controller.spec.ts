@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TasksController } from './tasks.controller';
-import { PrismaTaskService, TasksService } from './tasks.service';
+import { PrismaTaskRepo, TasksRepo } from './tasks-repo.service';
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -10,8 +10,8 @@ describe('TasksController', () => {
       controllers: [TasksController],
       providers: [
         {
-          provide: TasksService,
-          useClass: PrismaTaskService,
+          provide: TasksRepo,
+          useClass: PrismaTaskRepo,
         },
       ],
     }).compile();

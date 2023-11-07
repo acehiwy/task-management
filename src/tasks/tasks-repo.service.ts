@@ -4,7 +4,7 @@ import { Task } from 'src/tasks/entities/task.entity';
 import { CreateTaskPayload } from './dto/create-task.dto';
 import { UpdateTaskPayload } from './dto/update-task.dto';
 
-export abstract class TasksService {
+export abstract class TasksRepo {
   abstract create(createTaskPayload: CreateTaskPayload): Promise<Task>;
 
   abstract findAll(): Promise<Task[]>;
@@ -20,7 +20,7 @@ export abstract class TasksService {
 }
 
 @Injectable()
-export class PrismaTaskService implements TasksService {
+export class PrismaTaskRepo implements TasksRepo {
   constructor(private readonly prismaService: PrismaService) {}
 
   create(createTaskPayload: CreateTaskPayload) {
