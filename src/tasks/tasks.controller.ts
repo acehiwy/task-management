@@ -6,16 +6,15 @@ import {
   Param,
   Patch,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { RequestMaker } from 'src/common/decorators/request-maker.decorator';
+import { ContainValidBearerTokenGuard } from 'src/common/guards/contain-valid-bearer-token/contain-valid-bearer-token.guard';
+import { User } from 'src/users/entities/user.entity';
 import { CreateTaskApiPayload } from './dto/create-task.dto';
 import { UpdateTaskApiPayload } from './dto/update-task.dto';
 import { TasksService } from './tasks.service';
-import { extractBearerToken } from 'src/common/helpers';
-import { ContainValidBearerTokenGuard } from 'src/common/guards/contain-valid-bearer-token/contain-valid-bearer-token.guard';
 
 const resourceName = 'tasks';
 
@@ -27,16 +26,15 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  create(@Body() requestBody: CreateTaskApiPayload, @Req() req: Request) {
-    const requestMakerUserId = extractBearerToken(
-      req.get('authorization') as string,
-    ) as string;
-
+  create(
+    @Body() requestBody: CreateTaskApiPayload,
+    @RequestMaker() requestMaker: User,
+  ) {
     return this.tasksService.create({
       title: requestBody.title,
       description: requestBody.description,
       dueDate: requestBody.dueDate,
-      updatedById: requestMakerUserId,
+      updatedById: requestMaker.id,
     });
   }
 
