@@ -31,8 +31,6 @@ export class PrismaTaskRepo implements TasksRepo {
         description: createTaskPayload.description,
         dueDate: createTaskPayload.dueDate,
         status: createTaskPayload.status,
-        createdAt: createTaskPayload.createdAt,
-        updatedAt: createTaskPayload.updatedAt,
         updatedBy: {
           connect: {
             id: createTaskPayload.updatedById,
@@ -57,6 +55,11 @@ export class PrismaTaskRepo implements TasksRepo {
   update(id: string, updateTaskPayload: UpdateTaskPayload) {
     return this.prismaService.task.update({
       data: {
+        id: updateTaskPayload.id,
+        title: updateTaskPayload.title,
+        description: updateTaskPayload.description,
+        dueDate: updateTaskPayload.dueDate,
+        status: updateTaskPayload.status,
         updatedById: updateTaskPayload.updatedById,
       },
       where: {

@@ -6,4 +6,7 @@ export class CreateTaskApiPayload {
   dueDate: PrismaTask['dueDate'];
 }
 
-export type CreateTaskPayload = Prisma.TaskUncheckedCreateInput;
+export type CreateTaskPayload = Omit<
+  Prisma.TaskUncheckedCreateInput,
+  'createdAt' | 'updatedAt'
+>;
