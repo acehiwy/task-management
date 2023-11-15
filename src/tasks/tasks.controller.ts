@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -44,17 +45,20 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.taskRepo.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() requestBody: UpdateTaskApiPayload) {
+  update(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() requestBody: UpdateTaskApiPayload,
+  ) {
     return this.taskRepo.update(id, requestBody);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.taskRepo.remove(id);
   }
 }
