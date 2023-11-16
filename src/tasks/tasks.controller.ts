@@ -1,9 +1,12 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
+  Inject,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -11,9 +14,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Cache } from 'cache-manager';
 import { RequestMaker } from 'src/common/decorators/request-maker.decorator';
 import { ContainValidBearerTokenGuard } from 'src/common/guards/contain-valid-bearer-token/contain-valid-bearer-token.guard';
+import { EnvironmentVariables } from 'src/common/interfaces';
+import { Stack } from 'src/common/stack';
 import { Task } from 'src/tasks/entities/task.entity';
 import { User } from 'src/users/entities/user.entity';
 import { CreateTaskApiPayload } from './dto/create-task.dto';
@@ -27,7 +34,11 @@ const resourceName = 'tasks';
 @ApiBearerAuth()
 @ApiTags(resourceName)
 export class TasksController {
-  constructor(private readonly taskRepo: TasksRepo) {}
+  constructor(
+    private readonly taskRepo: TasksRepo,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly configService: ConfigService<EnvironmentVariables, true>,
+  ) {}
 
   @Post()
   async create(
@@ -40,6 +51,8 @@ export class TasksController {
       dueDate: requestBody.dueDate,
       updatedById: requestMaker.id,
     });
+
+    this.cacheRollbackOperation(requestMaker.id, taskCreateResponse.rollback);
 
     return taskCreateResponse.result;
   }
@@ -62,17 +75,60 @@ export class TasksController {
   async update(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() requestBody: UpdateTaskApiPayload,
+    @RequestMaker() requestMaker: User,
   ): Promise<Task> {
     const taskUpdateResponse = await this.taskRepo.update(id, requestBody);
+
+    this.cacheRollbackOperation(requestMaker.id, taskUpdateResponse.rollback);
 
     return taskUpdateResponse.result;
   }
 
   @Delete(':id')
   @HttpCode(204)
-  async remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
-    await this.taskRepo.remove(id);
+  async remove(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @RequestMaker() requestMaker: User,
+  ) {
+    const taskRemoveResponse = await this.taskRepo.remove(id);
+
+    this.cacheRollbackOperation(requestMaker.id, taskRemoveResponse.rollback);
 
     return;
+  }
+
+  @Post('undo')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'undo previous operation(s)' })
+  async rollback(@RequestMaker() requestMaker: User) {
+    const rollbackStack = await this.cacheManager.get<
+      Stack<() => Promise<any>>
+    >(requestMaker.id);
+
+    const rollbackOperation = rollbackStack?.pop();
+
+    if (rollbackOperation === undefined)
+      throw new BadRequestException('No action to be rolled back');
+
+    await rollbackOperation();
+
+    return;
+  }
+
+  private async cacheRollbackOperation(
+    key: string,
+    operation: () => Promise<any>,
+  ) {
+    let operationStack =
+      await this.cacheManager.get<Stack<typeof operation>>(key);
+
+    if (operationStack === undefined) {
+      operationStack = new Stack(
+        this.configService.get('TASK_UNDO_OPERATION_MAX_CAPACITY'),
+      );
+    }
+
+    operationStack.push(operation);
+    await this.cacheManager.set(key, operationStack);
   }
 }
