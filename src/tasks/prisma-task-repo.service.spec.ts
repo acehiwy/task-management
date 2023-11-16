@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TasksRepo } from './tasks-repo.service';
+import { PrismaTaskRepo } from 'src/tasks/prisma-task-repo.service';
 
-describe('TasksService', () => {
-  let service: TasksRepo;
+describe('PrismaTaskRepoService', () => {
+  let service: PrismaTaskRepo;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TasksRepo],
+      providers: [PrismaTaskRepo],
     }).compile();
 
-    service = module.get<TasksRepo>(TasksRepo);
+    service = module.get<PrismaTaskRepo>(PrismaTaskRepo);
   });
 
   it('should be defined', () => {
