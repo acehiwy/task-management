@@ -78,7 +78,7 @@ export class PrismaTaskRepo implements TasksRepo {
       rollback: async () => {
         if (task === null)
           throw new NotFoundException(
-            `Unable to rollback, Task: ${id} not found at the first place`,
+            `Unable to rollback. Task: ${id} was not found at previous remove-operation`,
           );
 
         return this.upsert(task.id, task, task);
