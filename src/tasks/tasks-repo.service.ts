@@ -1,11 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Rollbackable } from 'src/common/interfaces';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { Task } from 'src/tasks/entities/task.entity';
 import { CreateTaskPayload } from './dto/create-task.dto';
 import { UpdateTaskPayload } from './dto/update-task.dto';
 
 export abstract class TasksRepo {
-  abstract create(createTaskPayload: CreateTaskPayload): Promise<Task>;
+  abstract create(
+    createTaskPayload: CreateTaskPayload,
+  ): Rollbackable<Promise<Task>>;
 
   abstract findAll(): Promise<Task[]>;
 
@@ -14,17 +18,17 @@ export abstract class TasksRepo {
   abstract update(
     id: Task['id'],
     updateTaskPayload: UpdateTaskPayload,
-  ): Promise<Task>;
+  ): Rollbackable<Promise<Task>, Promise<Task>>;
 
-  abstract remove(id: Task['id']): Promise<void>;
+  abstract remove(id: Task['id']): Rollbackable<Promise<void>, Promise<Task>>;
 }
 
 @Injectable()
 export class PrismaTaskRepo implements TasksRepo {
   constructor(private readonly prismaService: PrismaService) {}
 
-  create(createTaskPayload: CreateTaskPayload) {
-    return this.prismaService.task.create({
+  async create(createTaskPayload: CreateTaskPayload) {
+    const task = await this.prismaService.task.create({
       data: {
         id: createTaskPayload.id,
         title: createTaskPayload.title,
@@ -38,6 +42,11 @@ export class PrismaTaskRepo implements TasksRepo {
         },
       },
     });
+
+    return {
+      result: task,
+      rollback: () => this._remove(task.id),
+    };
   }
 
   findAll() {
@@ -52,8 +61,12 @@ export class PrismaTaskRepo implements TasksRepo {
     });
   }
 
-  update(id: string, updateTaskPayload: UpdateTaskPayload) {
-    return this.prismaService.task.update({
+  async update(id: string, updateTaskPayload: UpdateTaskPayload) {
+    const task = await this.findOne(id);
+
+    if (task === null) throw new NotFoundException(`Task: ${id} not found`);
+
+    const updatedTask = await this.prismaService.task.update({
       data: {
         id: updateTaskPayload.id,
         title: updateTaskPayload.title,
@@ -66,15 +79,63 @@ export class PrismaTaskRepo implements TasksRepo {
         id,
       },
     });
+
+    return {
+      result: updatedTask,
+      rollback: () => this.upsert(task.id, task, task),
+    };
   }
 
   async remove(id: string) {
-    await this.prismaService.task.delete({
+    const task = await this.findOne(id);
+
+    await this._remove(id);
+
+    return {
+      result: undefined,
+      rollback: async () => {
+        if (task === null)
+          throw new NotFoundException(
+            `Unable to rollback, Task: ${id} not found at the first place`,
+          );
+
+        return this.upsert(task.id, task, task);
+      },
+    };
+  }
+
+  private async _remove(id: string) {
+    try {
+      await this.prismaService.task.delete({
+        where: {
+          id,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code == 'P2025' // record not found
+      ) {
+        return;
+      }
+
+      throw error;
+    }
+  }
+
+  private async upsert(
+    id: string,
+    taskUpdate: UpdateTaskPayload,
+    taskCreate: CreateTaskPayload,
+  ) {
+    const task = await this.prismaService.task.upsert({
       where: {
         id,
       },
+      update: taskUpdate,
+      create: taskCreate,
     });
 
-    return;
+    return task;
   }
 }
