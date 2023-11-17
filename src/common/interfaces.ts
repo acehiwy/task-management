@@ -13,4 +13,7 @@ export type Rollbackable<T, R = Promise<void>> = T extends Promise<infer G>
 export class EnvironmentVariables {
   @IsNumber()
   TASK_UNDO_OPERATION_MAX_CAPACITY: number = 5;
+
+  @IsNumber()
+  PORT: number = 20001;
 }
