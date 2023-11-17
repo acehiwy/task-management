@@ -13,7 +13,15 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Task Management System')
-    .setDescription('CRUD for task')
+    .setDescription(
+      `
+      CRUD for task
+
+      Use user id as a token for authorization since complete authentication/authorization flow is not implemented. 
+
+      You can obtain user id by using create-user endpoint below.
+    `,
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
