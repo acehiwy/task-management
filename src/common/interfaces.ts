@@ -17,3 +17,8 @@ export class EnvironmentVariables {
   @IsNumber()
   PORT: number = 20001;
 }
+
+export type DateFilter = {
+  gte: string | Date;
+  lte: string | Date;
+};

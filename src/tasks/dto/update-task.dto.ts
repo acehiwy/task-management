@@ -1,16 +1,15 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { $Enums, Task as PrismaTask } from '@prisma/client';
+import { Task as PrismaTask } from '@prisma/client';
 import { IsIn, IsOptional } from 'class-validator';
 import {
   CreateTaskApiPayload,
   CreateTaskPayload,
 } from 'src/tasks/dto/create-task.dto';
-
-const taskStatuses = Object.values($Enums.TaskStatus);
+import { TASK_STATUS } from 'src/tasks/entities/task.entity';
 
 export class UpdateTaskApiPayload extends PartialType(CreateTaskApiPayload) {
-  @ApiProperty({ enum: taskStatuses })
-  @IsIn(taskStatuses)
+  @ApiProperty({ enum: TASK_STATUS })
+  @IsIn(TASK_STATUS)
   @IsOptional()
   status?: PrismaTask['status'];
 }

@@ -1,4 +1,4 @@
-import { Rollbackable } from 'src/common/interfaces';
+import { DateFilter, Rollbackable } from 'src/common/interfaces';
 import { Task } from 'src/tasks/entities/task.entity';
 import { CreateTaskPayload } from './dto/create-task.dto';
 import { UpdateTaskPayload } from './dto/update-task.dto';
@@ -8,7 +8,7 @@ export abstract class TasksRepo {
     createTaskPayload: CreateTaskPayload,
   ): Rollbackable<Promise<Task>>;
 
-  abstract findAll(): Promise<Task[]>;
+  abstract findAll(filter?: TaskFilter): Promise<Task[]>;
 
   abstract findOne(id: Task['id']): Promise<Task | null>;
 
@@ -19,3 +19,9 @@ export abstract class TasksRepo {
 
   abstract remove(id: Task['id']): Rollbackable<Promise<void>, Promise<Task>>;
 }
+
+export type TaskFilter = Partial<{
+  updatedById: Task['updatedById'];
+  status: Task['status'];
+  dueDate: Partial<DateFilter>;
+}>;

@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -26,6 +27,7 @@ import { User } from 'src/users/entities/user.entity';
 import { CreateTaskApiPayload } from './dto/create-task.dto';
 import { UpdateTaskApiPayload } from './dto/update-task.dto';
 import { TasksRepo } from './tasks-repo.service';
+import { AvailableTaskQuery } from 'src/tasks/dto/read-task.dto';
 
 const resourceName = 'tasks';
 
@@ -58,8 +60,20 @@ export class TasksController {
   }
 
   @Get()
-  findAll() {
-    return this.taskRepo.findAll();
+  findAll(@Query() query: AvailableTaskQuery) {
+    const fromDueDate = query.fromDueDate;
+    const untilDueDate = query.untilDueDate;
+    const status = query.status;
+    const updatedById = query.lastTouchBy;
+
+    return this.taskRepo.findAll({
+      dueDate: {
+        ...(fromDueDate && { gte: fromDueDate }),
+        ...(untilDueDate && { lte: untilDueDate }),
+      },
+      ...(status && { status }),
+      ...(updatedById && { updatedById }),
+    });
   }
 
   @Get(':id')

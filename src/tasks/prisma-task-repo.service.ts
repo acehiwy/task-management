@@ -3,7 +3,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { CreateTaskPayload } from 'src/tasks/dto/create-task.dto';
 import { UpdateTaskPayload } from 'src/tasks/dto/update-task.dto';
-import { TasksRepo } from 'src/tasks/tasks-repo.service';
+import { TaskFilter, TasksRepo } from 'src/tasks/tasks-repo.service';
 
 @Injectable()
 export class PrismaTaskRepo implements TasksRepo {
@@ -31,8 +31,17 @@ export class PrismaTaskRepo implements TasksRepo {
     };
   }
 
-  findAll() {
-    return this.prismaService.task.findMany();
+  findAll(filter?: TaskFilter) {
+    return this.prismaService.task.findMany({
+      where: {
+        status: filter?.status,
+        updatedById: filter?.updatedById,
+        dueDate: {
+          gte: filter?.dueDate?.gte,
+          lte: filter?.dueDate?.lte,
+        },
+      },
+    });
   }
 
   findOne(id: string) {
